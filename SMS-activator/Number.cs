@@ -13,7 +13,7 @@ namespace SMS_activator
 {
 
     /// <summary>
-    /// Class for getting and manipulating with phone number / Класс для получение и манипулирования с телефонным номером
+    /// Class for getting and manipulating with phone number / Класс для получение и управления телефонным номером
     /// </summary>
     class Number
     {
@@ -37,32 +37,30 @@ namespace SMS_activator
         private bool STOPE_RECEIVING_SMS = false;
 
         /// <summary>
-        /// In this variable we saving $id, need in moust operation with server / В этой переменной мы храним идентификатор операции, который необходим в большинстве операций с сервером 
+        /// This property contains the current ballance / Данное свойство содержит текущий балланс учётной записи
+        /// </summary>
+        public string CurrentBallance { get; private set; }
+
+        /// <summary>
+        /// This variable contains $id, need in moust operation with server / В этой переменной хранится идентификатор операции, который необходим в большинстве операций с сервером 
         /// </summary>
         private string operationId = null;
 
-        // All threads will be work juast if this flag true
+        // All threads will be work juast if this flag true / Все потоки будут работать тоько если этот флаг true
         private bool IS_INTERNET_CONNECTION = true;
 
-        // Flag show is threade get ballans work
+        // Flag show is threade get ballans work / Флаг показует активность потока получения балланса
         private bool IS_GET_BALLANS_WORK = false;
 
         // Variable contains value pause between requests in ms / Переменная содержит значение паузы между запросами в мс
         private int PAUSE_REQUEST = 1000;
         private int PAUSE_REQUEST_BALLANSE = 5000;
 
-        /// <summary>
-        /// References on view components UI / Ссылки на визуальные компоненты пользовательского интерфейса
-        /// </summary>
-        private Label labelBallans;
-        
-        private TextBox textBoxNumber;
-        private TextBox textBoxSmsCode;
-
-        private Label labelGo;
-        private Label labelMi;
-        private Label labelYa;
-        private Label labelAo;
+        // This properties conteins number available cell phones for each service / Эти свойства содержат колличество доступных мобильных номеров для каждого сервиса
+        public string GoogleService { get; private set; }
+        public string MicrosoftService { get; private set; }
+        public string YahooService { get; private set; }
+        public string AolService { get; private set; }
 
         /// <summary>
         /// Parameters for accesing to register / Параметры для доступа в реестр
@@ -98,40 +96,22 @@ namespace SMS_activator
         // Evetnts
         public event Action NumberReceived;
         public event Action SmsCodeReceived;
+        public event Action BallansGet;
+        public event Action QuantityFreeCellNumbers;
 
-        /// <summary>
-        /// Method that initialize compunents, join this class with view components UI / Метод который инициализирует компоненты, соединяя этот класс с компонентами пользовательского интерфейса
-        /// </summary>
-        public void InitalizeComponentsFromMainForm(ref Label _labelBallans,
-                                                           ref TextBox _textBoxNumber,
-                                                           ref TextBox _textBoxSmsCode,
-                                                           ref Label _labelGo,
-                                                           ref Label _labelMi,
-                                                           ref Label _labelYa,
-                                                           ref Label _labelAo)
-        {
-            labelBallans = _labelBallans;
-            textBoxNumber = _textBoxNumber;
-            textBoxSmsCode = _textBoxSmsCode;
 
-            labelGo = _labelGo;
-            labelMi = _labelMi;
-            labelYa = _labelYa;
-            labelAo = _labelAo;
-        }
-
-        public void GetBallans()
+        public void GetBallance()
         {
             if (!IS_GET_BALLANS_WORK)
             {
-                Thread thread = new Thread(GetBallansNode);
+                Thread thread = new Thread(GetBallanceNode);
                 thread.Start();
             }
         }
         
 
         /// <summary>
-        /// Method reading server Api Key from register / Метод читает Api ключ сурвера из реестра
+        /// Reading server Api Key from register / Метод читает Api ключ сурвера из реестра
         /// </summary>
         /// <returns>Returns Key / Возвращает ключ</returns>
         public string GetKey()
@@ -141,9 +121,9 @@ namespace SMS_activator
 
 
         /// <summary>
-        /// Method reading accout ballans from server / Метод читает балланс аккаунта с сервера
+        /// Reading accout ballans from server / Метод читает балланс аккаунта с сервера
         /// </summary>
-        private void GetBallansNode()
+        private void GetBallanceNode()
         {
             do {
                 string key = GetKey();
@@ -180,15 +160,19 @@ namespace SMS_activator
                     MessageBox.Show(ex.Message);
                 }
 
-                // If response equal server errors - show messageBox / Если ответ соответствует ошибкам - показуем messageBox
+
+                // If response contains ACCESS_BALANCE, parce message and getting ballans / Если ответ содержит ACCESS_BALANCE, парсим сообщение и получаем балланс
                 if (responseTxt.Contains(ACCESS_BALANCE))
                 {
-                    labelBallans.Text = responseTxt.Remove(0, ACCESS_BALANCE.Length);
+                    CurrentBallance = responseTxt.Remove(0, ACCESS_BALANCE.Length);
 
-                    FreeQuantity();
+                    BallansGet();
+
+                    QuantityFreeNumbers();
                 }
                 else
                 {
+                    // If response equal server errors - show messageBox / Если ответ соответствует серверным ошибкам - показуем messageBox
                     Logger.Add("Ошибка сервера: " + responseTxt);
                 }
 
@@ -199,14 +183,14 @@ namespace SMS_activator
         /// <summary>
         /// Request sum free numbers / Запрашываем колличество свободных номеров
         /// </summary>
-        public void FreeQuantity()
+        public void QuantityFreeNumbers()
         {
             string key = GetKey();
 
             string responseTxt = string.Empty;
 
             try {
-                //Send request to site / Отправляем запрос на сервер
+                // Send request to the server / Отправляем запрос на сервер
                 HttpWebRequest myReq = (HttpWebRequest)WebRequest.Create("http://sms-activate.ru/stubs/handler_api.php?api_key=" + key + "&action=getNumbersStatus");
                 myReq.Credentials = CredentialCache.DefaultCredentials;
 
@@ -239,16 +223,18 @@ namespace SMS_activator
             // http://sms-activate.ru/index.php?act=api
 
             // Parse Google
-            labelGo.Text = Parcer.SubString(responseTxt, "\"go_0\":\"", "\",");
+            GoogleService = Parcer.SubString(responseTxt, "\"go_0\":\"", "\",");
 
             // Parse Microsoft
-            labelMi.Text = Parcer.SubString(responseTxt, "\"mm_0\":\"", "\",");
+            MicrosoftService = Parcer.SubString(responseTxt, "\"mm_0\":\"", "\",");
 
             // Parse Yahoo
-            labelYa.Text = Parcer.SubString(responseTxt, "\"mb_0\":\"", "\",");
+            YahooService = Parcer.SubString(responseTxt, "\"mb_0\":\"", "\",");
 
             // Parse Aol
-            labelAo.Text = Parcer.SubString(responseTxt, "\"we_0\":\"", "\",");
+            AolService = Parcer.SubString(responseTxt, "\"we_0\":\"", "\",");
+
+            QuantityFreeCellNumbers();
         }
 
         /// <summary>
@@ -256,7 +242,7 @@ namespace SMS_activator
         /// </summary>
         public void GetGoogleNumber()
         {
-            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberNode));
+            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberThread));
             thread.Start("go");
         }
 
@@ -265,7 +251,7 @@ namespace SMS_activator
         /// </summary>
         public void GetMicrosoftNumber()
         {
-            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberNode));
+            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberThread));
             thread.Start("mm");
         }
 
@@ -274,15 +260,24 @@ namespace SMS_activator
         /// </summary>
         public void GetYahooNumber()
         {
-            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberNode));
+            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberThread));
             thread.Start("mb");
+        }
+
+                /// <summary>
+        /// Method starts in new thread method of receipt number for Aol service / Метод запускает в новом потоке метод получения номера для Aol сервиса
+        /// </summary>
+        public void GetAolNumber()
+        {
+            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberThread));
+            thread.Start("we");
         }
 
         /// <summary>
         /// Method sends a request to the server for receipt phone number / Метод отправляет запрос на сервер для получения номера
         /// </summary>
         /// <param name="_codeService">Code service / Код сервиса (go(Google,youtube,Gmail), mm(Microsoft), mb(Yahoo), we(Aol))</param>
-        private void GetNumberNode(object _codeService)
+        private void GetNumberThread(object _codeService)
         {
             STOPE_RECEIVING_NUMBER = false;
             bool flagNumberGet = false;
@@ -367,14 +362,14 @@ namespace SMS_activator
 
         private void GetSmsCode()
         {
-            Thread thread = new Thread(GetSmsCodeNode);
+            Thread thread = new Thread(GetSmsCodeThread);
             thread.Start();
         }
 
         /// <summary>
         /// Send request to the server for forgive sms code / Отправляет запрос на сервер для получения кода из смс
         /// </summary>
-        private void GetSmsCodeNode()
+        private void GetSmsCodeThread()
         {
             STOPE_RECEIVING_SMS = false;
             bool flagSmsGet = false;
@@ -453,15 +448,10 @@ namespace SMS_activator
             } while (flagSmsGet == false && flagGetError == false && STOPE_RECEIVING_SMS == false);
         }
 
-        /// <summary>
-        /// Method starts in new thread method of receipt number for Aol service / Метод запускает в новом потоке метод получения номера для Aol сервиса
-        /// </summary>
-        public void GetAolNumber()
-        {
-            Thread thread = new Thread(new ParameterizedThreadStart(GetNumberNode));
-            thread.Start("we");
-        }
 
+        /// <summary>
+        /// Send request to the server for say him that number is used / Отправляет запрос на сервер и сообщаем ему, что номер использован
+        /// </summary>
         public void SendNumberIsUsed()
         {
             if (operationId != null)
@@ -497,6 +487,10 @@ namespace SMS_activator
             }
         }
 
+
+        /// <summary>
+        /// Send request to the server, stop getting SMS code to the numbeer previously obtained / Отправляет запрос на сервер, останавливаем получение СМС кода на ранее полученный номер
+        /// </summary>
         public void SendCancelActivation()
         {
             if (operationId != null)
@@ -534,9 +528,6 @@ namespace SMS_activator
                         // Add server response in log / Добавляем ответ сервера в лог
                         Logger.Add("Отправка запроса -1, отменить активацию. Ответ сервера: " + responseTxt);
                     }
-
-
-
 
                     response.Close();
                     reader.Close();

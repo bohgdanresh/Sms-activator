@@ -25,11 +25,15 @@ namespace SMS_activator
 
             number.NumberReceived += NumberReceived_Handler;
             number.NumberReceived += PlaySoundWhenNumberGet_Handler;
+            number.BallansGet += BallanceGet_Handler;
+            number.QuantityFreeCellNumbers += QuantityFreeCellNumbers_Handler;
 
             number.SmsCodeReceived += SmsCodeReceived_Handler;
             number.SmsCodeReceived += PlaySoundWhenSmsCodeReceived_Handler;
 
-            number.InitalizeComponentsFromMainForm(ref this.label4, ref this.textBox1, ref this.textBox2, ref this.labelGo, ref this.labelMi, ref this.labelYa, ref this.labelAo);
+
+
+            //number.InitalizeComponentsFromMainForm(ref this.label4, ref this.textBox1, ref this.textBox2, ref this.labelGo, ref this.labelMi, ref this.labelYa, ref this.labelAo);
             Logger.InitalizeComponentsFromMainForm(ref this.richTextBox1);
 
             // Very bad crutch
@@ -41,6 +45,16 @@ namespace SMS_activator
 
         Form2_Settings formSettings;
 
+        /// <summary>
+        /// Method is the handler event of receiving a number / Метод является обработчиком события получения номера
+        /// </summary>
+        private void QuantityFreeCellNumbers_Handler()
+        {
+            labelGo.Text = number.GoogleService;
+            labelMi.Text = number.MicrosoftService;
+            labelYa.Text = number.YahooService;
+            labelAo.Text = number.AolService;
+        }
 
         /// <summary>
         /// Method is the handler event of receiving a number / Метод является обработчиком события получения номера
@@ -58,6 +72,16 @@ namespace SMS_activator
             textBox2.Text = number.SmsCode;
         }
 
+
+        /// <summary>
+        /// Method is the handler event of receiving a current ballence / Метод является обработчиком события получения текущего балланса
+        /// </summary>
+        private void BallanceGet_Handler()
+        {
+            label4.Text = number.CurrentBallance;
+        }
+
+
         /// <summary>
         /// Method create sound effect when number was received / Метод создает звуковой эффект, когда получен номер
         /// </summary>
@@ -73,6 +97,7 @@ namespace SMS_activator
                 MessageBox.Show(ex.Message);
             }
         }
+
 
         /// <summary>
         /// Method create sound effect when number was received / Метод создает звуковой эффект, когда получен номер
@@ -153,7 +178,7 @@ namespace SMS_activator
             progressBar1.Visible = true;
             pictureBox5.Visible = true;
 
-            number.GetBallans();
+            number.GetBallance();
         }
 
         private void pictureBox5_Click(object sender, EventArgs e)
@@ -195,18 +220,18 @@ namespace SMS_activator
 
         private void pictureBox7_Click(object sender, EventArgs e)
         {
-            number.FreeQuantity();
-            number.GetBallans();
+            number.QuantityFreeNumbers();
+            number.GetBallance();
         }
 
         private void label3_Click(object sender, EventArgs e)
         {
-            number.GetBallans();
+            number.GetBallance();
         }
 
         private void label4_Click(object sender, EventArgs e)
         {
-            number.GetBallans();
+            number.GetBallance();
         }
 
         private void textBox1_TextChanged_1(object sender, EventArgs e)
