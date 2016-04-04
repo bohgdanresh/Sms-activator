@@ -54,7 +54,7 @@ namespace SMS_activator
 
         // Variable contains value pause between requests in ms / Переменная содержит значение паузы между запросами в мс
         private int PAUSE_REQUEST = 1000;
-        private int PAUSE_REQUEST_BALLANSE = 5000;
+        private int PAUSE_REQUEST_BALLANSE = 2000;
 
         // This properties conteins number available cell phones for each service / Эти свойства содержат колличество доступных мобильных номеров для каждого сервиса
         public string GoogleService { get; private set; }
@@ -138,7 +138,7 @@ namespace SMS_activator
                     IS_INTERNET_CONNECTION = true;
                     IS_GET_BALLANS_WORK = true;
 
-                    Logger.Add("Получение баланса");
+                    //Logger.Add("Получение баланса");
 
                     // Get response / Получаем ответ
                     HttpWebResponse response = (HttpWebResponse)myReq.GetResponse();

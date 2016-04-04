@@ -272,6 +272,7 @@ namespace SMS_activator
 
         private void Form1_Shown(object sender, EventArgs e)
         {
+            number.GetBallance();
         }
 
         private void button4_Click(object sender, EventArgs e)
